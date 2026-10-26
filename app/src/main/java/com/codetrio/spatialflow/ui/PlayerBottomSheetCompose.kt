@@ -312,6 +312,7 @@ internal fun BoxScope.UnifiedPlayerMiniAndFullLayers(
     songList: List<SongItem>,
     baseAccentColor: Color,
     monochromePlayer: Boolean,
+    monochromeArtworkGrayscale: Boolean,
     context: Context,
     sheetProgress: Animatable<Float, AnimationVector1D>,
     containerHeight: Dp,
@@ -691,6 +692,7 @@ fun PlayerBottomSheetCompose(
             activity = activity,
             viewModel = viewModel,
             monochromePlayer = monochromePlayer,
+            monochromeArtworkGrayscale = monochromeArtworkGrayscale,
             modifier = modifier
         )
     }
@@ -704,6 +706,7 @@ private fun PlayerBottomSheetComposeContent(
     activity: MainActivity,
     viewModel: PlayerSharedViewModel,
     monochromePlayer: Boolean,
+    monochromeArtworkGrayscale: Boolean,
     modifier: Modifier = Modifier
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
@@ -1251,6 +1254,7 @@ private fun PlayerBottomSheetComposeContent(
                                 songList = songList,
                                 baseAccentColor = baseAccentColor,
                                 monochromePlayer = monochromePlayer,
+                                monochromeArtworkGrayscale = monochromeArtworkGrayscale,
                                 context = context,
                                 sheetProgress = sheetProgress,
                                 containerHeight = containerHeight,
