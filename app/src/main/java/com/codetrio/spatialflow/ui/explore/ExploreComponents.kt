@@ -62,7 +62,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.ListItemShapes
-import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -77,15 +76,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.composed
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -97,6 +93,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.codetrio.spatialflow.R
 import com.codetrio.spatialflow.data.innertube.HomeSection
 import com.codetrio.spatialflow.data.innertube.OnlineAlbum
 import com.codetrio.spatialflow.data.innertube.OnlineArtist
@@ -127,32 +124,9 @@ fun ShimmerModifier(
 }
 
 fun Modifier.shimmerEffect(): Modifier = composed {
-    var positionInRoot by remember { mutableStateOf(Offset.Zero) }
-    val transition = rememberInfiniteTransition(label = "shimmer")
-    val translateAnim by transition.animateFloat(
-        initialValue = -1000f,
-        targetValue = 3000f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 2000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "shimmer_anim"
-    )
-    val shimmerColors = listOf(
-        MaterialTheme.colorScheme.surfaceContainerLow,
-        MaterialTheme.colorScheme.surfaceContainerHigh,
-        MaterialTheme.colorScheme.surfaceContainerLow
-    )
-
-    this
-        .onGloballyPositioned { positionInRoot = it.positionInRoot() }
-        .background(
-            brush = Brush.linearGradient(
-                colors = shimmerColors,
-                start = Offset(translateAnim - positionInRoot.x, translateAnim - positionInRoot.y),
-                end = Offset(translateAnim - positionInRoot.x + 600f, translateAnim - positionInRoot.y + 600f)
-            )
-        )
+    // Keep skeleton placeholders intentionally static: a separate infinite animation
+    // per placeholder caused dozens of per-frame recompositions while data was loading.
+    background(MaterialTheme.colorScheme.surfaceContainerHigh)
 }
 
 /**
@@ -345,20 +319,18 @@ fun SearchResultItem(
                 contentScale = ContentScale.Crop
             )
             if (isLoading) {
-                val loadingTransition = rememberInfiniteTransition(label = "loading_shimmer")
-                val shimmerAlpha by loadingTransition.animateFloat(
-                    initialValue = 0.3f, targetValue = 0.7f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(800, easing = LinearEasing),
-                        repeatMode = RepeatMode.Reverse
-                    ), label = "shimmer_alpha"
-                )
+                // Avoid running an animated shimmer and spinner for every loading row.
                 Box(
                     modifier = Modifier.fillMaxSize().clip(imageShape)
-                        .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = shimmerAlpha)),
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.82f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    LoadingIndicator(modifier = Modifier.size(20.dp))
+                    Icon(
+                        painter = painterResource(R.drawable.ic_music_note),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
         }

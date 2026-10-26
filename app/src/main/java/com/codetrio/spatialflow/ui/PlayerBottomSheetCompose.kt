@@ -1302,7 +1302,7 @@ private fun MiniPlayerContentInternal(
                 val target = if (duration > 0) (currentPosition.toFloat() / duration.toFloat()).coerceIn(0f, 1f) else 0f
                 progressAnimatable.animateTo(
                     targetValue = target,
-                    animationSpec = tween(durationMillis = 350, easing = LinearEasing)
+                    animationSpec = tween(durationMillis = 180, easing = LinearEasing)
                 )
             }
 

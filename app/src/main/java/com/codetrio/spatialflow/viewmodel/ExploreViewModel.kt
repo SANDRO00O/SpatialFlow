@@ -998,15 +998,28 @@ class ExploreViewModel(application: Application) : AndroidViewModel(application)
 
     private fun prefetchUrls(urls: List<String?>) {
         val applicationContext = getApplication<Application>()
+        // Prefetch a small, bounded set of thumbnails at a predictable decode size.
+        // The previous implementation enqueued every URL at original size, which could
+        // create a burst of large bitmap allocations on low-memory devices.
+        val thumbnailUrls = urls.asSequence()
+            .filterNotNull()
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .distinct()
+            .take(16)
+            .toList()
+
+        if (thumbnailUrls.isEmpty()) return
+
         viewModelScope.launch {
             val loader = applicationContext.imageLoader
-            urls.forEach { url ->
-                if (!url.isNullOrBlank()) {
-                    val req = ImageRequest.Builder(applicationContext)
-                        .data(url)
-                        .build()
-                    loader.enqueue(req)
-                }
+            thumbnailUrls.forEach { url ->
+                val req = ImageRequest.Builder(applicationContext)
+                    .data(url)
+                    .size(384, 384)
+                    .crossfade(false)
+                    .build()
+                loader.enqueue(req)
             }
         }
     }
