@@ -411,7 +411,7 @@ internal fun BoxScope.UnifiedPlayerMiniAndFullLayers(
                 onCollapse = onCollapse,
                 dragModifier = dragModifier,
                 lyricsArtworkAnim = lyricsArtworkAnim,
-                allowCanvas = isCanvasAllowedForFullPlayer && !monochromePlayer,
+                allowCanvas = isCanvasAllowedForFullPlayer && !monochromeArtworkGrayscale,
                 allowRealtimeUpdates = fullPlayerRuntimePolicy.allowRealtimeUpdates,
                 modifier = Modifier.fillMaxSize()
             )
@@ -674,6 +674,7 @@ fun PlayerBottomSheetCompose(
     val context = LocalContext.current
     val prefs = remember(context) { context.getSharedPreferences("AppSettings", Context.MODE_PRIVATE) }
     val monochromePlayer by prefs.observeKey("monochrome_player", false)
+    val monochromeArtworkGrayscale by prefs.observeKey("monochrome_artwork_grayscale", false)
     val currentScheme = MaterialTheme.colorScheme
     val playerScheme = if (monochromePlayer) {
         currentScheme.toMonochromePlayerScheme(isSystemInDarkTheme())
@@ -1437,7 +1438,7 @@ private fun PlayerBottomSheetComposeContent(
                                 currentSongIndex = uiState.currentSongIndex,
                                 context = context,
                                 userScrollEnabled = isArtworkScrollable,
-                                allowCanvas = isArtworkCanvasAllowed && !monochromePlayer,
+                                allowCanvas = isArtworkCanvasAllowed && !monochromeArtworkGrayscale,
                                 isPlaying = isPlaying,
                                 modifier = Modifier.fillMaxSize()
                             )

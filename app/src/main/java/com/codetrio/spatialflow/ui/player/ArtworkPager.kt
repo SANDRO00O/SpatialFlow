@@ -300,12 +300,12 @@ internal fun ArtworkPageItem(
     activeCanvasArtwork: CanvasArtwork?,
     context: Context
 ) {
-    val monochromePlayer by remember(context) {
+    val monochromeArtworkGrayscale by remember(context) {
         context.getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
-            .observeKey("monochrome_player", false)
+            .observeKey("monochrome_artwork_grayscale", false)
     }
-    val artworkColorFilter = remember(monochromePlayer) {
-        if (monochromePlayer) {
+    val artworkColorFilter = remember(monochromeArtworkGrayscale) {
+        if (monochromeArtworkGrayscale) {
             ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) })
         } else {
             null
@@ -398,7 +398,7 @@ internal fun ArtworkPageItem(
         }
 
         // Canvas motion artwork overlay
-        if (!monochromePlayer && showAnimatedArt && allowCanvas && (!canvasPrimaryUrl.isNullOrBlank() || !canvasFallbackUrl.isNullOrBlank())) {
+        if (!monochromeArtworkGrayscale && showAnimatedArt && allowCanvas && (!canvasPrimaryUrl.isNullOrBlank() || !canvasFallbackUrl.isNullOrBlank())) {
             AnimatedVisibility(
                 visible = isCurrentPage,
                 enter = fadeIn(tween(400)),

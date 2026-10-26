@@ -122,7 +122,9 @@ fun AppearanceScreen(
     canvasProviderOrder: List<String> = listOf("spotify", "apple_music"),
     onCanvasProviderOrderChange: (List<String>) -> Unit = {},
     monochromePlayer: Boolean = false,
-    onMonochromePlayerChange: (Boolean) -> Unit = {}
+    onMonochromePlayerChange: (Boolean) -> Unit = {},
+    monochromeArtworkGrayscale: Boolean = false,
+    onMonochromeArtworkGrayscaleChange: (Boolean) -> Unit = {}
 ) {
     SettingsScaffold(
         title = "Appearance",
@@ -162,6 +164,28 @@ fun AppearanceScreen(
                         },
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                         modifier = Modifier.clickable { onMonochromePlayerChange(!monochromePlayer) }
+                    )
+                }
+                add {
+                    ListItem(
+                        headlineContent = { Text("Grayscale Album Artwork", style = MaterialTheme.typography.bodyLarge) },
+                        supportingContent = {
+                            Text(
+                                "Show album covers in black and white. Turn off to keep their original colors.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = monochromeArtworkGrayscale,
+                                onCheckedChange = onMonochromeArtworkGrayscaleChange
+                            )
+                        },
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                        modifier = Modifier.clickable {
+                            onMonochromeArtworkGrayscaleChange(!monochromeArtworkGrayscale)
+                        }
                     )
                 }
                 add { AppIconRow() }

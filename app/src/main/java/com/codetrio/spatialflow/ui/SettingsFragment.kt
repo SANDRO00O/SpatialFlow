@@ -525,6 +525,16 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         prefs.edit { putBoolean(KEY_MONOCHROME_PLAYER, enabled) }
     }
 
+    // ── Monochrome Artwork ──────────────────────────────────────────────────
+    private val _monochromeArtworkGrayscale =
+        MutableStateFlow(prefs.getBoolean(KEY_MONOCHROME_ARTWORK_GRAYSCALE, false))
+    val monochromeArtworkGrayscale: StateFlow<Boolean> = _monochromeArtworkGrayscale.asStateFlow()
+
+    fun setMonochromeArtworkGrayscale(enabled: Boolean) {
+        _monochromeArtworkGrayscale.value = enabled
+        prefs.edit { putBoolean(KEY_MONOCHROME_ARTWORK_GRAYSCALE, enabled) }
+    }
+
     // ── All-in-One Liquid Glass ───────────────────────────────────────────
     private val _allInOneLiquidGlass = MutableStateFlow(prefs.getBoolean(KEY_ALL_IN_ONE_LIQUID_GLASS, false))
     val allInOneLiquidGlass: StateFlow<Boolean> = _allInOneLiquidGlass.asStateFlow()
@@ -1699,6 +1709,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         const val KEY_HAPTIC_BATTERY_SAVER = "haptic_battery_saver"
         const val KEY_DYNAMIC_ALBUM_THEME = "dynamic_album_theme"
         const val KEY_MONOCHROME_PLAYER = "monochrome_player"
+        const val KEY_MONOCHROME_ARTWORK_GRAYSCALE = "monochrome_artwork_grayscale"
         const val KEY_VOLUME_NORMALIZATION_ENABLED = "volume_normalization_enabled"
         const val KEY_TARGET_LUFS = "target_lufs"
         const val KEY_ALL_IN_ONE_LIQUID_GLASS = "all_in_one_liquid_glass"
@@ -1998,6 +2009,7 @@ fun NavGraphBuilder.settingsGraph(navController: androidx.navigation.NavControll
         val canvasProviderOrder by viewModel.canvasProviderOrder.collectAsStateWithLifecycle()
         val dynamicAlbumTheme by viewModel.dynamicAlbumTheme.collectAsStateWithLifecycle()
         val monochromePlayer by viewModel.monochromePlayer.collectAsStateWithLifecycle()
+        val monochromeArtworkGrayscale by viewModel.monochromeArtworkGrayscale.collectAsStateWithLifecycle()
         val hideNavLabels by viewModel.hideNavLabels.collectAsStateWithLifecycle()
         val slideNavOnScroll by viewModel.slideNavOnScroll.collectAsStateWithLifecycle()
         val dynamicNavStyle by viewModel.dynamicNavStyle.collectAsStateWithLifecycle()
@@ -2025,6 +2037,8 @@ fun NavGraphBuilder.settingsGraph(navController: androidx.navigation.NavControll
             onDynamicAlbumThemeChange = { viewModel.setDynamicAlbumTheme(it) },
             monochromePlayer = monochromePlayer,
             onMonochromePlayerChange = { viewModel.setMonochromePlayer(it) },
+            monochromeArtworkGrayscale = monochromeArtworkGrayscale,
+            onMonochromeArtworkGrayscaleChange = { viewModel.setMonochromeArtworkGrayscale(it) },
             hideNavLabels = hideNavLabels,
             onHideNavLabelsChange = { viewModel.setHideNavLabels(it) },
             slideNavOnScroll = slideNavOnScroll,
