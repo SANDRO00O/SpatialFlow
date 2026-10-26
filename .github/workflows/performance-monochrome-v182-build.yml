@@ -1,4 +1,5 @@
 name: Performance + Monochrome v1.8.2 Temporary Build
+# Revalidate the current v1.8.2 branch after Compose state propagation fixes.
 
 on:
   push:
