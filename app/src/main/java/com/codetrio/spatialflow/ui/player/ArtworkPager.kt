@@ -302,10 +302,10 @@ internal fun ArtworkPageItem(
     activeCanvasArtwork: CanvasArtwork?,
     context: Context
 ) {
-    val monochromeArtworkGrayscale by remember(context) {
+    val artworkPrefs = remember(context) {
         context.getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
-            .observeKey("monochrome_artwork_grayscale", false)
     }
+    val monochromeArtworkGrayscale by artworkPrefs.observeKey("monochrome_artwork_grayscale", false)
     val artworkColorFilter = remember(monochromeArtworkGrayscale) {
         if (monochromeArtworkGrayscale) {
             ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) })
