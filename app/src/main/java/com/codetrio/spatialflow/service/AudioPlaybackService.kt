@@ -53,8 +53,6 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.datasource.DataSpec
-import androidx.media3.datasource.cache.CacheWriter
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.CommandButton
 import androidx.media3.session.DefaultMediaNotificationProvider
@@ -1381,13 +1379,13 @@ class AudioPlaybackService : MediaSessionService() {
 
         val loadControl = androidx.media3.exoplayer.DefaultLoadControl.Builder()
             .setBufferDurationsMs(
-                20000,  // minBufferMs (20s buffer for mobile data resilience)
-                60000,  // maxBufferMs (up to 60s in memory)
-                500,    // bufferForPlaybackMs (instant start)
-                1500    // bufferForPlaybackAfterRebufferMs (fast recovery on cell re-buffer)
+                10_000, // Keep a useful safety buffer without retaining nearly a minute of audio.
+                20_000, // Limit streaming buffer duration to reduce native memory pressure.
+                500,    // Start promptly once a short initial buffer is available.
+                1_500   // Keep a slightly larger buffer after an underrun.
             )
-            .setBackBuffer(10000, true) // Retain 10s of back buffer for instantaneous rewinds
-            .setPrioritizeTimeOverSizeThresholds(true)
+            .setTargetBufferBytes(4 * 1024 * 1024) // Bound buffering target to 4 MiB per ExoPlayer instance.
+            .setPrioritizeTimeOverSizeThresholdsForStreaming(false)
             .build()
 
         val playerInstance = ExoPlayer.Builder(this)
@@ -2251,13 +2249,6 @@ class AudioPlaybackService : MediaSessionService() {
                         nextUri = resolvedUrl.toUri()
                         queuePreloader.putResolvedUri(nextSong.id, nextUri)
                         Log.d(TAG, "Next track stream URL pre-resolved successfully")
-
-                        // First-chunk byte pre-caching: only on unmetered/Wi-Fi to prevent cellular bandwidth starvation
-                        val cm = getSystemService(CONNECTIVITY_SERVICE) as? android.net.ConnectivityManager
-                        val isCellular = cm?.getNetworkCapabilities(cm.activeNetwork)?.hasTransport(android.net.NetworkCapabilities.TRANSPORT_CELLULAR) == true
-                        if (!isCellular) {
-                            preCacheFirstChunk(resolvedUrl)
-                        }
                     }
                 }
             }
@@ -2328,38 +2319,6 @@ class AudioPlaybackService : MediaSessionService() {
     }
 
     
-    private var precacheJob: Job? = null
-
-    /**
-     * Pre-cache the first 512KB of the audio stream into SimpleCache for instant playback start.
-     */
-    private fun preCacheFirstChunk(streamUrl: String) {
-        precacheJob?.cancel()
-        precacheJob = serviceScope.launch(Dispatchers.IO) {
-            try {
-                ensureActive()
-                val dataSpec = DataSpec.Builder()
-                    .setUri(streamUrl)
-                    .setLength(512 * 1024) // 512KB first chunk
-                    .build()
-                
-                val cacheWriter = CacheWriter(
-                    cacheDataSourceFactory.createDataSource(),
-                    dataSpec,
-                    null,
-                    { _, _, _ ->
-                        if (!isActive) throw kotlinx.coroutines.CancellationException("Precache cancelled")
-                    }
-                )
-                cacheWriter.cache()
-                Log.d(TAG, "⚡ First-chunk pre-cached (512KB) for instant start")
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: java.io.IOException) {
-                Log.w(TAG, "First-chunk pre-cache failed (non-critical): ${e.message}")
-            }
-        }
-    }
 
     fun play() {
         Log.d(TAG, "play: player.currentMediaItem = ${player.currentMediaItem}, isPlaying = ${player.isPlaying}")

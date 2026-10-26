@@ -300,6 +300,18 @@ internal fun ArtworkPageItem(
     activeCanvasArtwork: CanvasArtwork?,
     context: Context
 ) {
+    val monochromePlayer by remember(context) {
+        context.getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
+            .observeKey("monochrome_player", false)
+    }
+    val artworkColorFilter = remember(monochromePlayer) {
+        if (monochromePlayer) {
+            ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) })
+        } else {
+            null
+        }
+    }
+
     val artworkModel: Any? = remember(song.id, song.thumbnailUrl, song.videoId, song.path) {
         val thumb = song.thumbnailUrl
         val uri = song.getAlbumArtUri()
@@ -380,12 +392,13 @@ internal fun ArtworkPageItem(
                 crossfade = false,
                 showShimmer = false,
                 modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.Crop,
+                colorFilter = artworkColorFilter
             )
         }
 
         // Canvas motion artwork overlay
-        if (showAnimatedArt && allowCanvas && (!canvasPrimaryUrl.isNullOrBlank() || !canvasFallbackUrl.isNullOrBlank())) {
+        if (!monochromePlayer && showAnimatedArt && allowCanvas && (!canvasPrimaryUrl.isNullOrBlank() || !canvasFallbackUrl.isNullOrBlank())) {
             AnimatedVisibility(
                 visible = isCurrentPage,
                 enter = fadeIn(tween(400)),

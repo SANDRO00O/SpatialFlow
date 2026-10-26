@@ -101,6 +101,7 @@ import com.codetrio.spatialflow.model.SongItem
 import com.codetrio.spatialflow.ui.player.ArtworkPager
 import com.codetrio.spatialflow.ui.player.DynamicIslandMiniPlayer
 import com.codetrio.spatialflow.ui.player.FullPlayerScreen
+import com.codetrio.spatialflow.ui.player.toMonochromePlayerScheme
 import com.codetrio.spatialflow.ui.player.PlayerUiState
 import com.codetrio.spatialflow.ui.theme.LocalAppBackdrop
 import com.codetrio.spatialflow.ui.theme.LocalAppHazeState
@@ -310,6 +311,7 @@ internal fun BoxScope.UnifiedPlayerMiniAndFullLayers(
     uiState: PlayerUiState,
     songList: List<SongItem>,
     baseAccentColor: Color,
+    monochromePlayer: Boolean,
     context: Context,
     sheetProgress: Animatable<Float, AnimationVector1D>,
     containerHeight: Dp,
@@ -405,10 +407,11 @@ internal fun BoxScope.UnifiedPlayerMiniAndFullLayers(
                 songList = songList,
                 accentColor = baseAccentColor,
                 context = context,
+                monochromePlayer = monochromePlayer,
                 onCollapse = onCollapse,
                 dragModifier = dragModifier,
                 lyricsArtworkAnim = lyricsArtworkAnim,
-                allowCanvas = isCanvasAllowedForFullPlayer,
+                allowCanvas = isCanvasAllowedForFullPlayer && !monochromePlayer,
                 allowRealtimeUpdates = fullPlayerRuntimePolicy.allowRealtimeUpdates,
                 modifier = Modifier.fillMaxSize()
             )
@@ -668,6 +671,40 @@ fun PlayerBottomSheetCompose(
     viewModel: PlayerSharedViewModel,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val prefs = remember(context) { context.getSharedPreferences("AppSettings", Context.MODE_PRIVATE) }
+    val monochromePlayer by prefs.observeKey("monochrome_player", false)
+    val currentScheme = MaterialTheme.colorScheme
+    val playerScheme = if (monochromePlayer) {
+        currentScheme.toMonochromePlayerScheme(isSystemInDarkTheme())
+    } else {
+        currentScheme
+    }
+
+    MaterialTheme(
+        colorScheme = playerScheme,
+        typography = MaterialTheme.typography,
+        shapes = MaterialTheme.shapes
+    ) {
+        PlayerBottomSheetComposeContent(
+            activity = activity,
+            viewModel = viewModel,
+            monochromePlayer = monochromePlayer,
+            modifier = modifier
+        )
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.Q)
+@SuppressLint("ConfigurationScreenWidthHeight")
+@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalFoundationApi::class)
+@Composable
+private fun PlayerBottomSheetComposeContent(
+    activity: MainActivity,
+    viewModel: PlayerSharedViewModel,
+    monochromePlayer: Boolean,
+    modifier: Modifier = Modifier
+) {
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val context = LocalContext.current
         val density = LocalDensity.current
@@ -695,21 +732,23 @@ fun PlayerBottomSheetCompose(
         val playerBackgroundColor by viewModel.playerBackgroundColor.collectAsStateWithLifecycle()
         val likesCount by viewModel.likesCountFlow.collectAsStateWithLifecycle()
         val isDark = isSystemInDarkTheme()
-        val dynamicBgColor = remember(playerBackgroundColor, isDark) {
-            val baseColor = Color(playerBackgroundColor)
-            val hsl = FloatArray(3)
-            androidx.core.graphics.ColorUtils.colorToHSL(baseColor.toArgb(), hsl)
-            val isMonochrome = hsl[1] < 0.06f
-            if (isDark) {
-                // Dark Theme: Set a premium, richly-colored dark solid background (Exactly 15.5% lightness for gorgeous color presence)
-                hsl[2] = 0.155f
-                hsl[1] = if (isMonochrome) 0f else hsl[1].coerceIn(0.32f, 0.54f)
-                Color(androidx.core.graphics.ColorUtils.HSLToColor(hsl))
+        val dynamicBgColor = remember(playerBackgroundColor, isDark, monochromePlayer) {
+            if (monochromePlayer) {
+                if (isDark) Color.Black else Color.White
             } else {
-                // Light Theme: Set a premium, elegant soft pastel solid background (Exactly 83.5% lightness for deep pastel flavor)
-                hsl[2] = 0.835f
-                hsl[1] = if (isMonochrome) 0f else hsl[1].coerceIn(0.30f, 0.48f)
-                Color(androidx.core.graphics.ColorUtils.HSLToColor(hsl))
+                val baseColor = Color(playerBackgroundColor)
+                val hsl = FloatArray(3)
+                androidx.core.graphics.ColorUtils.colorToHSL(baseColor.toArgb(), hsl)
+                val isMonochrome = hsl[1] < 0.06f
+                if (isDark) {
+                    hsl[2] = 0.155f
+                    hsl[1] = if (isMonochrome) 0f else hsl[1].coerceIn(0.32f, 0.54f)
+                    Color(androidx.core.graphics.ColorUtils.HSLToColor(hsl))
+                } else {
+                    hsl[2] = 0.835f
+                    hsl[1] = if (isMonochrome) 0f else hsl[1].coerceIn(0.30f, 0.48f)
+                    Color(androidx.core.graphics.ColorUtils.HSLToColor(hsl))
+                }
             }
         }
         val isCurrentSongDisliked by viewModel.isCurrentSongDisliked.collectAsStateWithLifecycle()
@@ -907,15 +946,14 @@ fun PlayerBottomSheetCompose(
         // Dynamic Blend Colors from Artwork
         val defaultPrimary = MaterialTheme.colorScheme.primary
         val onSurfaceColor = MaterialTheme.colorScheme.onSurface
-        val baseAccentColor = remember(miniPlayerBlendColor, isDark, defaultPrimary, onSurfaceColor) {
-            val rawAccent = if (miniPlayerBlendColor != 0) Color(miniPlayerBlendColor) else defaultPrimary
-            val hsl = FloatArray(3)
-            androidx.core.graphics.ColorUtils.colorToHSL(rawAccent.toArgb(), hsl)
-            if (hsl[1] < 0.05f) {
-                // Monochromatic / Grayscale
-                onSurfaceColor
+        val baseAccentColor = remember(miniPlayerBlendColor, isDark, defaultPrimary, onSurfaceColor, monochromePlayer) {
+            if (monochromePlayer) {
+                if (isDark) Color.White else Color.Black
             } else {
-                rawAccent
+                val rawAccent = if (miniPlayerBlendColor != 0) Color(miniPlayerBlendColor) else defaultPrimary
+                val hsl = FloatArray(3)
+                androidx.core.graphics.ColorUtils.colorToHSL(rawAccent.toArgb(), hsl)
+                if (hsl[1] < 0.05f) onSurfaceColor else rawAccent
             }
         }
 
@@ -1211,6 +1249,7 @@ fun PlayerBottomSheetCompose(
                                 uiState = uiState,
                                 songList = songList,
                                 baseAccentColor = baseAccentColor,
+                                monochromePlayer = monochromePlayer,
                                 context = context,
                                 sheetProgress = sheetProgress,
                                 containerHeight = containerHeight,
@@ -1398,7 +1437,7 @@ fun PlayerBottomSheetCompose(
                                 currentSongIndex = uiState.currentSongIndex,
                                 context = context,
                                 userScrollEnabled = isArtworkScrollable,
-                                allowCanvas = isArtworkCanvasAllowed,
+                                allowCanvas = isArtworkCanvasAllowed && !monochromePlayer,
                                 isPlaying = isPlaying,
                                 modifier = Modifier.fillMaxSize()
                             )
@@ -1553,7 +1592,7 @@ private fun MiniPlayerProgressIndicator(
         progressFlow.collect { target ->
             progressAnimatable.animateTo(
                 targetValue = target,
-                animationSpec = tween(durationMillis = 350, easing = LinearEasing)
+                animationSpec = tween(durationMillis = 180, easing = LinearEasing)
             )
         }
     }

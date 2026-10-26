@@ -2087,24 +2087,32 @@ class ExploreViewModel(application: Application) : AndroidViewModel(application)
 
     private fun prefetchUrls(urls: List<String?>) {
         val applicationContext = getApplication<Application>()
+        // Keep image prefetching bounded to avoid bursts of bitmap allocations during search.
+        val thumbnailUrls = urls.asSequence()
+            .filterNotNull()
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .distinct()
+            .take(16)
+            .toList()
+
+        if (thumbnailUrls.isEmpty()) return
+
         viewModelScope.launch(Dispatchers.IO) {
             val loader = applicationContext.imageLoader
-            urls.forEach { url ->
-                if (!url.isNullOrBlank()) {
-                    val optimizedUrl = url.resizeCDN(288)
-                    val req = ImageRequest.Builder(applicationContext)
-                        .data(optimizedUrl)
-                        .size(288)
-                        .allowHardware(true)
-                        .memoryCachePolicy(CachePolicy.ENABLED)
-                        .diskCachePolicy(CachePolicy.ENABLED)
-                        .build()
-                    loader.enqueue(req)
-                }
+            thumbnailUrls.forEach { url ->
+                val optimizedUrl = url.resizeCDN(288)
+                val req = ImageRequest.Builder(applicationContext)
+                    .data(optimizedUrl)
+                    .size(288)
+                    .allowHardware(true)
+                    .memoryCachePolicy(CachePolicy.ENABLED)
+                    .diskCachePolicy(CachePolicy.ENABLED)
+                    .build()
+                loader.enqueue(req)
             }
         }
-    }
-}
+    }}
 
 @Stable
 data class ExploreUiState(

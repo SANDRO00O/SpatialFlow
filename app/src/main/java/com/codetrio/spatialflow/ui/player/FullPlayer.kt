@@ -102,6 +102,7 @@ fun FullPlayerScreen(
     songList: List<SongItem>,
     accentColor: Color,
     context: Context,
+    monochromePlayer: Boolean = false,
     onCollapse: () -> Unit,
     dragModifier: Modifier = Modifier,
     lyricsArtworkAnim: Animatable<Float, androidx.compose.animation.core.AnimationVector1D>,
@@ -444,13 +445,19 @@ fun FullPlayer(
     val darkVibrant = PlayerPaletteState.darkVibrantColor.value
     val darkMuted = PlayerPaletteState.darkMutedColor.value
 
-    val effectiveAccent = remember(hasCanvas, vibrant, accentColor) {
-        if (hasCanvas && vibrant != Color.Black) vibrant else accentColor
+    val effectiveAccent = remember(hasCanvas, vibrant, accentColor, monochromePlayer) {
+        if (monochromePlayer) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            if (hasCanvas && vibrant != Color.Black) vibrant else accentColor
+        }
     }
 
     val playerBackgroundColor =
-        remember(uiState.playerBackgroundColor, isStatic, vibrant, darkVibrant, darkMuted, hasCanvas) {
-            if (hasCanvas && darkMuted != Color.Black) {
+        remember(uiState.playerBackgroundColor, isStatic, vibrant, darkVibrant, darkMuted, hasCanvas, monochromePlayer) {
+            if (monochromePlayer) {
+                MaterialTheme.colorScheme.background
+            } else if (hasCanvas && darkMuted != Color.Black) {
                 darkMuted
             } else {
                 resolvePlayerBackgroundColor(

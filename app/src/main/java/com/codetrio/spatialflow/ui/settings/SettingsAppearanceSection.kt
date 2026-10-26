@@ -120,7 +120,9 @@ fun AppearanceScreen(
     showAnimatedArt: Boolean,
     onShowAnimatedArtChange: (Boolean) -> Unit,
     canvasProviderOrder: List<String> = listOf("spotify", "apple_music"),
-    onCanvasProviderOrderChange: (List<String>) -> Unit = {}
+    onCanvasProviderOrderChange: (List<String>) -> Unit = {},
+    monochromePlayer: Boolean = false,
+    onMonochromePlayerChange: (Boolean) -> Unit = {}
 ) {
     SettingsScaffold(
         title = "Appearance",
@@ -142,6 +144,26 @@ fun AppearanceScreen(
                     add { AmoledBlackRow(amoledBlack, onAmoledBlackChange) }
                 }
                 add { DynamicAlbumThemeRow(dynamicAlbumTheme, onDynamicAlbumThemeChange) }
+                add {
+                    ListItem(
+                        headlineContent = { Text("Monochrome Player", style = MaterialTheme.typography.bodyLarge) },
+                        supportingContent = {
+                            Text(
+                                "Use black-and-white colors throughout the mini and full player.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = monochromePlayer,
+                                onCheckedChange = onMonochromePlayerChange
+                            )
+                        },
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                        modifier = Modifier.clickable { onMonochromePlayerChange(!monochromePlayer) }
+                    )
+                }
                 add { AppIconRow() }
             })
 

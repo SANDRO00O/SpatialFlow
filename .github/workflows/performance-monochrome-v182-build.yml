@@ -1,0 +1,50 @@
+name: Performance + Monochrome v1.8.2 Temporary Build
+
+on:
+  push:
+    branches:
+      - temp/performance-monochrome-v1.8.2
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: performance-monochrome-v182-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-debug-apks:
+    name: Build combined v1.8.2 debug APKs
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out temporary v1.8.2 integration
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: temurin
+          cache: gradle
+
+      - name: Accept Android SDK and NDK licenses
+        run: |
+          set +o pipefail
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
+          set -o pipefail
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: Build combined debug APKs
+        run: ./gradlew --no-daemon assembleDebug
+
+      - name: Upload combined debug APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: spatialflow-performance-monochrome-v1.8.2-debug
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14

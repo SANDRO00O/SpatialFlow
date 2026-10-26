@@ -311,17 +311,9 @@ val LocalShimmerOffset = androidx.compose.runtime.compositionLocalOf { 0f }
  */
 @Composable
 fun UnifiedShimmerProvider(content: @Composable () -> Unit) {
-    val transition = rememberInfiniteTransition(label = "unified_shimmer")
-    val shimmerOffset by transition.animateFloat(
-        initialValue = -1200f,
-        targetValue = 2400f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1400, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "unified_shimmer_offset"
-    )
-    androidx.compose.runtime.CompositionLocalProvider(LocalShimmerOffset provides shimmerOffset) {
+    // Skeletons stay static while data loads so large placeholder grids do not trigger
+    // a shared animation/recomposition every frame on low-memory devices.
+    androidx.compose.runtime.CompositionLocalProvider(LocalShimmerOffset provides 0f) {
         content()
     }
 }
@@ -330,7 +322,6 @@ fun UnifiedShimmerProvider(content: @Composable () -> Unit) {
  * Standard UI Shimmer Modifier to render placeholder skeleton states efficiently.
  * Reads from [LocalShimmerOffset] so all elements share a single diagonal sweep.
  */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ShimmerModifier(
     width: Dp,
@@ -338,51 +329,17 @@ fun ShimmerModifier(
     shape: Shape = RoundedCornerShape(8.dp),
     useMorphingLoadingShape: Boolean = false
 ) {
-    val finalShape = if (useMorphingLoadingShape) {
-        val morphState = rememberExpressiveShapeMorph(
-            shapes = remember {
-                listOf(
-                    MaterialShapes.Cookie6Sided,
-                    MaterialShapes.SoftBurst,
-                    MaterialShapes.PuffyDiamond,
-                    MaterialShapes.Square
-                )
-            }
-        )
-        morphState.morphShape
-    } else {
-        shape
-    }
-
-    val globalShimmerOffset = LocalShimmerOffset.current
-    var posInRoot by remember { mutableStateOf(Offset.Zero) }
-    val colorLow = MaterialTheme.colorScheme.surfaceContainerLow
-    val colorHigh = MaterialTheme.colorScheme.surfaceContainerHigh
-
+    // Static skeleton shape avoids infinite animations and root-position tracking per item.
     Box(
         modifier = Modifier
             .size(width = width, height = height)
-            .clip(finalShape)
-            .onGloballyPositioned { coords ->
-                posInRoot = coords.positionInRoot()
-            }
-            .drawWithContent {
-                drawContent()
-                // Offset the shared sweep band by this element's root position
-                // so the gradient appears to sweep across the entire screen as one.
-                val localOffset = globalShimmerOffset - posInRoot.x - posInRoot.y
-                val brush = Brush.linearGradient(
-                    colors = listOf(colorLow, colorHigh, colorLow),
-                    start = Offset(localOffset, localOffset),
-                    end = Offset(localOffset + 600f, localOffset + 600f)
-                )
-                drawRect(brush = brush)
-            }
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
     )
 }
 
 fun Modifier.shimmerEffect(shape: Shape = RoundedCornerShape(8.dp)): Modifier =
-    clip(shape).background(Color.Transparent)
+    clip(shape).background(MaterialTheme.colorScheme.surfaceContainerHigh)
 
 /**
  * Material 3 Expressive spring press scale modifier.

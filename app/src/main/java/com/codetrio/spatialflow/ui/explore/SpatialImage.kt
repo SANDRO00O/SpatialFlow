@@ -300,40 +300,7 @@ fun SpatialImage(
  */
 @Composable
 private fun Modifier.spatialShimmer(): Modifier {
-    val isDark = isSystemInDarkTheme()
-    val baseColor = MaterialTheme.colorScheme.surfaceContainerHigh
-    val midColor = MaterialTheme.colorScheme.surfaceContainerHighest
-    val beamColor = if (isDark) {
-        Color.White.copy(alpha = 0.35f)
-    } else {
-        Color.White.copy(alpha = 0.85f)
-    }
-
-    val sharedShimmer = LocalSharedShimmer.current
-    val fallbackTransition = if (sharedShimmer == null) rememberInfiniteTransition(label = "SpatialImageShimmer") else null
-    val localOffset = fallbackTransition?.animateFloat(
-        initialValue = -300f,
-        targetValue = 1200f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 650, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "ShimmerTranslate"
-    )
-    val shimmerOffsetState = sharedShimmer ?: localOffset ?: remember { mutableStateOf(0f) }
-
-    val colors = listOf(baseColor, midColor, beamColor, midColor, baseColor)
-
-    return this.drawWithCache {
-        onDrawBehind {
-            val offset = shimmerOffsetState.value
-            val shimmerBrush = Brush.linearGradient(
-                colors = colors,
-                start = Offset(offset - 200f, offset - 200f),
-                end = Offset(offset + 200f, offset + 200f)
-            )
-            drawRect(brush = shimmerBrush)
-        }
-    }
+    // Static placeholder instead of allocating an animation for every loading image.
+    return this.background(MaterialTheme.colorScheme.surfaceContainerHigh)
 }
 
