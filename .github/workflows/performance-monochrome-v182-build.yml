@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - temp/performance-monochrome-v1.8.2
+      - temp/performance-monochrome-build-pr
   pull_request:
     branches:
       - temp/performance-monochrome-v1.8.2
