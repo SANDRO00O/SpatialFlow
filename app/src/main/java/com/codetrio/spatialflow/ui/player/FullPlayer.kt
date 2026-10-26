@@ -444,10 +444,12 @@ fun FullPlayer(
     val vibrant = PlayerPaletteState.vibrantColor.value
     val darkVibrant = PlayerPaletteState.darkVibrantColor.value
     val darkMuted = PlayerPaletteState.darkMutedColor.value
+    val monoPrimaryColor = MaterialTheme.colorScheme.primary
+    val monoBackgroundColor = MaterialTheme.colorScheme.background
 
     val effectiveAccent = remember(hasCanvas, vibrant, accentColor, monochromePlayer) {
         if (monochromePlayer) {
-            MaterialTheme.colorScheme.primary
+            monoPrimaryColor
         } else {
             if (hasCanvas && vibrant != Color.Black) vibrant else accentColor
         }
@@ -456,7 +458,7 @@ fun FullPlayer(
     val playerBackgroundColor =
         remember(uiState.playerBackgroundColor, isStatic, vibrant, darkVibrant, darkMuted, hasCanvas, monochromePlayer) {
             if (monochromePlayer) {
-                MaterialTheme.colorScheme.background
+                monoBackgroundColor
             } else if (hasCanvas && darkMuted != Color.Black) {
                 darkMuted
             } else {

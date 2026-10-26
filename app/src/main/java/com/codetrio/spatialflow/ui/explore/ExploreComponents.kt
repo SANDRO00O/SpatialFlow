@@ -339,7 +339,7 @@ fun ShimmerModifier(
 }
 
 fun Modifier.shimmerEffect(shape: Shape = RoundedCornerShape(8.dp)): Modifier =
-    clip(shape).background(MaterialTheme.colorScheme.surfaceContainerHigh)
+    clip(shape).background(Color.Gray.copy(alpha = 0.14f))
 
 /**
  * Material 3 Expressive spring press scale modifier.

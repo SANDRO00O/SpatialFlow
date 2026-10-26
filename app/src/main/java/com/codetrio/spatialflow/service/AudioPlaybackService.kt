@@ -231,7 +231,6 @@ class AudioPlaybackService : MediaSessionService() {
 
     fun cancelInFlightLoads() {
         preloadJob?.cancel()
-        precacheJob?.cancel()
         queuePreloader.cancel()
         artworkPreloader.cancel()
     }
@@ -1075,8 +1074,6 @@ class AudioPlaybackService : MediaSessionService() {
         resolveJob = null
         preloadJob?.cancel()
         preloadJob = null
-        precacheJob?.cancel()
-        precacheJob = null
         persistenceJob?.cancel()
         persistenceJob = null
         
