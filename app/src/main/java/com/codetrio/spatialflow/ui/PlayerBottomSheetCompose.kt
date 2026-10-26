@@ -98,6 +98,7 @@ import com.codetrio.spatialflow.model.SongItem
 import com.codetrio.spatialflow.ui.player.ArtworkPager
 import com.codetrio.spatialflow.ui.player.FullPlayerScreen
 import com.codetrio.spatialflow.ui.player.PlayerUiState
+import com.codetrio.spatialflow.ui.player.toMonochromePlayerScheme
 import com.codetrio.spatialflow.viewmodel.PlayerSharedViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
@@ -1309,8 +1310,18 @@ private fun MiniPlayerContentInternal(
     } else {
         if (isDark) Color(0x1AFFFFFF) else Color(0x0D000000)
     }
+    val playerColorScheme = if (monochromePlayer) {
+        MaterialTheme.colorScheme.toMonochromePlayerScheme(isDark)
+    } else {
+        MaterialTheme.colorScheme
+    }
 
-    Row(
+    MaterialTheme(
+        colorScheme = playerColorScheme,
+        typography = MaterialTheme.typography,
+        shapes = MaterialTheme.shapes
+    ) {
+        Row(
         modifier = modifier
             .fillMaxSize()
             .clickable(onClick = onClick)
@@ -1443,6 +1454,7 @@ private fun MiniPlayerContentInternal(
                     modifier = Modifier.size(24.dp)
                 )
             }
+        }
         }
     }
 }
