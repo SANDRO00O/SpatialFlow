@@ -35,8 +35,6 @@ import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.database.StandaloneDatabaseProvider
-import androidx.media3.datasource.DataSpec
-import androidx.media3.datasource.cache.CacheWriter
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.exoplayer.ExoPlayer
@@ -447,12 +445,13 @@ class AudioPlaybackService : MediaSessionService() {
 
         val loadControl = androidx.media3.exoplayer.DefaultLoadControl.Builder()
             .setBufferDurationsMs(
-                50000,  // minBufferMs (Aggressively buffer 50s to prevent starvation)
-                60000,  // maxBufferMs (Allow up to 60s in memory)
-                250,    // bufferForPlaybackMs (Extreme Reactivity - start playing after 250ms)
-                1500    // bufferForPlaybackAfterRebufferMs (Recover quickly with 1.5s buffer)
+                10_000, // Keep a useful safety buffer without retaining nearly a minute of audio.
+                20_000, // Limit streaming buffer duration to reduce native memory pressure.
+                500,    // Start promptly once a short initial buffer is available.
+                1_500   // Keep a slightly larger buffer after an underrun.
             )
-            .setPrioritizeTimeOverSizeThresholds(true) // Ensures playback starts instantly on low buffer
+            .setTargetBufferBytes(4 * 1024 * 1024) // 4 MiB target per player, including crossfade playback.
+            .setPrioritizeTimeOverSizeThresholdsForStreaming(false)
             .build()
 
         return ExoPlayer.Builder(this)
@@ -610,8 +609,9 @@ class AudioPlaybackService : MediaSessionService() {
                     nextUri = resolvedUrl.toUri()
                     Log.d(TAG, "Next track stream URL pre-resolved successfully")
                     
-                    // First-chunk byte pre-caching: download first 512KB into SimpleCache
-                    preCacheFirstChunk(resolvedUrl)
+                    // Keep all stream buffering inside ExoPlayer's native queue. Starting a
+                    // separate CacheWriter download here duplicated network work while the
+                    // current track could still be starting, competing for bandwidth and allocations.
                 }
             }
             
@@ -701,44 +701,6 @@ class AudioPlaybackService : MediaSessionService() {
         }
     }
     
-    /**
-     * Pre-cache the first 512KB of the audio stream into SimpleCache for instant playback start.
-     */
-    private fun preCacheFirstChunk(streamUrl: String) {
-        serviceScope.launch(Dispatchers.IO) {
-            try {
-                val httpDataSourceFactory = androidx.media3.datasource.DefaultHttpDataSource.Factory()
-                    .setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0")
-                    .setConnectTimeoutMs(5000)
-                    .setReadTimeoutMs(5000)
-                    .setAllowCrossProtocolRedirects(true)
-                
-                val upstreamFactory = androidx.media3.datasource.DefaultDataSource.Factory(applicationContext, httpDataSourceFactory)
-                val cacheDataSourceFactory = androidx.media3.datasource.cache.CacheDataSource.Factory()
-                    .setCache(getCache(applicationContext))
-                    .setUpstreamDataSourceFactory(upstreamFactory)
-                    .setFlags(androidx.media3.datasource.cache.CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
-                
-                val dataSpec = DataSpec.Builder()
-                    .setUri(streamUrl)
-                    .setLength(512 * 1024) // 512KB first chunk
-                    .build()
-                
-                val cacheWriter = CacheWriter(
-                    cacheDataSourceFactory.createDataSource(),
-                    dataSpec,
-                    null, // no progress listener
-                    null  // no cancellation
-                )
-                cacheWriter.cache()
-                Log.d(TAG, "⚡ First-chunk pre-cached (512KB) for instant start")
-            } catch (e: Exception) {
-                // Non-critical: pre-caching failure just means normal buffering on play
-                Log.w(TAG, "First-chunk pre-cache failed (non-critical): ${e.message}")
-            }
-        }
-    }
-
     fun play() {
         if (player.currentMediaItem == null) {
             val uri = viewModel?.songUri?.value
@@ -1340,7 +1302,11 @@ class AudioPlaybackService : MediaSessionService() {
                         }
                     }
                 }
-                handler.postDelayed(this, 250)
+                // Only poll during active playback. The listener restarts the ticker when
+                // playback resumes, while the initial one-shot tick still restores position.
+                if (player.isPlaying) {
+                    handler.postDelayed(this, 500L)
+                }
             }
         }
         handler.post(progressUpdateRunnable)
