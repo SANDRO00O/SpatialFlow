@@ -93,6 +93,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.codetrio.spatialflow.R
 import com.codetrio.spatialflow.data.innertube.HomeSection
 import com.codetrio.spatialflow.data.innertube.OnlineAlbum
 import com.codetrio.spatialflow.data.innertube.OnlineArtist
