@@ -90,6 +90,7 @@ fun FullPlayerScreen(
     songList: List<SongItem>,
     accentColor: Color,
     context: Context,
+    monochromePlayer: Boolean = false,
     onCollapse: () -> Unit,
     dragModifier: Modifier = Modifier,
     modifier: Modifier = Modifier
@@ -134,6 +135,7 @@ fun FullPlayerScreen(
         uiState = uiState,
         songList = songList,
         accentColor = accentColor,
+        monochromePlayer = monochromePlayer,
         isLyricsModeEnabled = isLyricsModeEnabled,
         syncedLyrics = syncedLyrics,
         plainLyrics = plainLyrics,
@@ -208,6 +210,7 @@ fun FullPlayer(
     uiState: PlayerUiState,
     songList: List<SongItem>,
     accentColor: Color,
+    monochromePlayer: Boolean = false,
     isLyricsModeEnabled: Boolean,
     syncedLyrics: List<LyricLine>?,
     plainLyrics: String?,
@@ -233,37 +236,62 @@ fun FullPlayer(
     modifier: Modifier = Modifier
 ) {
     val isDark = isSystemInDarkTheme()
-    val contentColor = if (isDark) Color.White else Color(0xFF1C1B1F)
-    val contentSecondary = if (isDark) Color.White.copy(alpha = 0.6f) else Color(0xFF1C1B1F).copy(alpha = 0.6f)
+    val contentColor = if (monochromePlayer) {
+        if (isDark) Color.White else Color.Black
+    } else {
+        if (isDark) Color.White else Color(0xFF1C1B1F)
+    }
+    val contentSecondary = if (monochromePlayer) {
+        if (isDark) Color(0xFFBDBDBD) else Color(0xFF555555)
+    } else {
+        if (isDark) Color.White.copy(alpha = 0.6f) else Color(0xFF1C1B1F).copy(alpha = 0.6f)
+    }
 
-    val dynamicAccentColor = remember(accentColor, isDark) {
-        val hsl = FloatArray(3)
-        androidx.core.graphics.ColorUtils.colorToHSL(accentColor.toArgb(), hsl)
-        if (hsl[1] < 0.08f) {
-            // Monochromatic / Grayscale
-            if (isDark) Color.White else Color(0xFF1C1B1F)
+    val dynamicAccentColor = remember(accentColor, isDark, monochromePlayer) {
+        if (monochromePlayer) {
+            if (isDark) Color.White else Color.Black
         } else {
-            if (isDark) {
-                accentColor
+            val hsl = FloatArray(3)
+            androidx.core.graphics.ColorUtils.colorToHSL(accentColor.toArgb(), hsl)
+            if (hsl[1] < 0.08f) {
+                // Monochromatic / Grayscale
+                if (isDark) Color.White else Color(0xFF1C1B1F)
             } else {
-                hsl[2] = hsl[2].coerceAtMost(0.45f)
-                hsl[1] = hsl[1].coerceAtLeast(0.6f)
-                Color(androidx.core.graphics.ColorUtils.HSLToColor(hsl))
+                if (isDark) {
+                    accentColor
+                } else {
+                    hsl[2] = hsl[2].coerceAtMost(0.45f)
+                    hsl[1] = hsl[1].coerceAtLeast(0.6f)
+                    Color(androidx.core.graphics.ColorUtils.HSLToColor(hsl))
+                }
             }
         }
     }
 
-    val backgroundBrush = remember(uiState.playerBackgroundColor, isDark) {
-        val playerColor = Color(uiState.playerBackgroundColor)
-        val finalColor = deriveArtworkSurfaceColor(
-            sourceColor = playerColor,
-            isDark = isDark,
-            darkLightness = 0.155f,
-            lightLightness = 0.835f,
-            darkSaturationRange = 0.32f..0.54f,
-            lightSaturationRange = 0.30f..0.48f
-        )
-        androidx.compose.ui.graphics.SolidColor(finalColor)
+    val playerBackgroundColor = if (monochromePlayer) {
+        if (isDark) Color.Black else Color.White
+    } else {
+        Color(uiState.playerBackgroundColor)
+    }
+    val backgroundBrush = remember(uiState.playerBackgroundColor, isDark, monochromePlayer) {
+        if (monochromePlayer) {
+            androidx.compose.ui.graphics.SolidColor(if (isDark) Color.Black else Color.White)
+        } else {
+            val finalColor = deriveArtworkSurfaceColor(
+                sourceColor = playerBackgroundColor,
+                isDark = isDark,
+                darkLightness = 0.155f,
+                lightLightness = 0.835f,
+                darkSaturationRange = 0.32f..0.54f,
+                lightSaturationRange = 0.30f..0.48f
+            )
+            androidx.compose.ui.graphics.SolidColor(finalColor)
+        }
+    }
+    val playerColorScheme = if (monochromePlayer) {
+        MaterialTheme.colorScheme.toMonochromePlayerScheme(isDark)
+    } else {
+        MaterialTheme.colorScheme
     }
 
     val haptic = LocalHapticFeedback.current
@@ -292,17 +320,20 @@ fun FullPlayer(
     val sleepTimerMode by viewModel.sleepTimerMode.collectAsStateWithLifecycle()
     val sleepTimerEndTime by viewModel.sleepTimerEndTime.collectAsStateWithLifecycle()
     
-    val lyricsBackgroundBrush = remember(uiState.playerBackgroundColor, isDark) {
-        val playerColor = Color(uiState.playerBackgroundColor)
-        val finalColor = deriveArtworkSurfaceColor(
-            sourceColor = playerColor,
-            isDark = isDark,
-            darkLightness = 0.145f,
-            lightLightness = 0.825f,
-            darkSaturationRange = 0.32f..0.54f,
-            lightSaturationRange = 0.30f..0.48f
-        )
-        androidx.compose.ui.graphics.SolidColor(finalColor)
+    val lyricsBackgroundBrush = remember(uiState.playerBackgroundColor, isDark, monochromePlayer) {
+        if (monochromePlayer) {
+            androidx.compose.ui.graphics.SolidColor(if (isDark) Color.Black else Color.White)
+        } else {
+            val finalColor = deriveArtworkSurfaceColor(
+                sourceColor = playerBackgroundColor,
+                isDark = isDark,
+                darkLightness = 0.145f,
+                lightLightness = 0.825f,
+                darkSaturationRange = 0.32f..0.54f,
+                lightSaturationRange = 0.30f..0.48f
+            )
+            androidx.compose.ui.graphics.SolidColor(finalColor)
+        }
     }
 
     // Trigger lyrics load when enabled
@@ -318,12 +349,17 @@ fun FullPlayer(
         }
     }
 
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(backgroundBrush)
-            .then(if (isQueueExpanded || isLyricsModeEnabled) Modifier else dragModifier) // Drag down anywhere to collapse
+    MaterialTheme(
+        colorScheme = playerColorScheme,
+        typography = MaterialTheme.typography,
+        shapes = MaterialTheme.shapes
     ) {
+        Box(
+            modifier = modifier
+                .fillMaxSize()
+                .background(backgroundBrush)
+                .then(if (isQueueExpanded || isLyricsModeEnabled) Modifier else dragModifier) // Drag down anywhere to collapse
+        ) {
         val configuration = LocalConfiguration.current
         val screenWidth = configuration.screenWidthDp.dp
         val screenHeight = configuration.screenHeightDp.dp
@@ -775,7 +811,7 @@ fun FullPlayer(
             onToggleShuffle = { viewModel.toggleShuffle() },
             onToggleLoopMode = { viewModel.toggleLoopMode() },
             onShowSleepTimerDialog = { showSleepTimerDialog = true },
-            playerBackgroundColor = uiState.playerBackgroundColor,
+            playerBackgroundColor = playerBackgroundColor.toArgb(),
             dynamicAccentColor = dynamicAccentColor,
             isDark = isDark
         )
@@ -797,6 +833,7 @@ fun FullPlayer(
                     else viewModel.cancelSleepTimer()
                 }
             )
+        }
         }
     }
 }
