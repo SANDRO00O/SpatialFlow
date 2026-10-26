@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - temp/performance-monochrome-v1.8.2
+  pull_request:
+    branches:
+      - temp/performance-monochrome-v1.8.2
   workflow_dispatch:
 
 permissions:
