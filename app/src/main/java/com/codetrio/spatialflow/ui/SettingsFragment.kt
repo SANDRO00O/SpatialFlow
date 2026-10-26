@@ -308,6 +308,15 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         prefs.edit {putBoolean(KEY_DYNAMIC_ALBUM_THEME, enabled)}
     }
 
+    // ── Monochrome Player ───────────────────────────────────────────────────
+    private val _monochromePlayer = MutableStateFlow(prefs.getBoolean(KEY_MONOCHROME_PLAYER, false))
+    val monochromePlayer: StateFlow<Boolean> = _monochromePlayer.asStateFlow()
+
+    fun setMonochromePlayer(enabled: Boolean) {
+        _monochromePlayer.value = enabled
+        prefs.edit {putBoolean(KEY_MONOCHROME_PLAYER, enabled)}
+    }
+
     // ── Ignore Short Audio ──────────────────────────────────────────────────
     private val _ignoreShortAudio = MutableStateFlow(prefs.getBoolean(KEY_IGNORE_SHORT_AUDIO, false))
     val ignoreShortAudio: StateFlow<Boolean> = _ignoreShortAudio.asStateFlow()
@@ -550,6 +559,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                     _darkMode.value = prefs.getBoolean(KEY_DARK_MODE, true)
                     _amoledBlack.value = prefs.getBoolean(KEY_AMOLED_BLACK, false)
                     _dynamicAlbumTheme.value = prefs.getBoolean(KEY_DYNAMIC_ALBUM_THEME, false)
+                    _monochromePlayer.value = prefs.getBoolean(KEY_MONOCHROME_PLAYER, false)
                     _vibrationStrength.value = prefs.getFloat(KEY_VIBRATION_STRENGTH, 80f)
                     _crossfadeEnabled.value = prefs.getBoolean(KEY_CROSSFADE_ENABLED, false)
                     _crossfadeDuration.value = prefs.getFloat(KEY_CROSSFADE_DURATION, 3f)
@@ -703,6 +713,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         const val KEY_HAPTIC_QUEUE = "haptic_queue"
         const val KEY_HAPTIC_FAVORITE = "haptic_favorite"
         const val KEY_DYNAMIC_ALBUM_THEME = "dynamic_album_theme"
+        const val KEY_MONOCHROME_PLAYER = "monochrome_player"
         const val KEY_VOLUME_NORMALIZATION_ENABLED = "volume_normalization_enabled"
         const val KEY_TARGET_LUFS = "target_lufs"
     }
@@ -752,6 +763,7 @@ fun SettingsScreenContent(
     val isPlayerExpanded by playerSharedViewModel.isPlayerExpanded.collectAsStateWithLifecycle()
     val amoledBlack by viewModel.amoledBlack.collectAsStateWithLifecycle()
     val dynamicAlbumTheme by viewModel.dynamicAlbumTheme.collectAsStateWithLifecycle()
+    val monochromePlayer by viewModel.monochromePlayer.collectAsStateWithLifecycle()
     val hideNavLabels by viewModel.hideNavLabels.collectAsStateWithLifecycle()
     val dynamicNavStyle by viewModel.dynamicNavStyle.collectAsStateWithLifecycle()
     val vibrationStrength by viewModel.vibrationStrength.collectAsStateWithLifecycle()
@@ -923,6 +935,8 @@ fun SettingsScreenContent(
                 onAmoledBlackChange = { viewModel.setAmoledBlack(it) },
                 dynamicAlbumTheme = dynamicAlbumTheme,
                 onDynamicAlbumThemeChange = { viewModel.setDynamicAlbumTheme(it) },
+                monochromePlayer = monochromePlayer,
+                onMonochromePlayerChange = { viewModel.setMonochromePlayer(it) },
                 hideNavLabels = hideNavLabels,
                 onHideNavLabelsChange = { viewModel.setHideNavLabels(it) },
                 dynamicNavStyle = dynamicNavStyle,
@@ -1668,6 +1682,8 @@ private fun AppearanceScreen(
     onAmoledBlackChange: (Boolean) -> Unit,
     dynamicAlbumTheme: Boolean,
     onDynamicAlbumThemeChange: (Boolean) -> Unit,
+    monochromePlayer: Boolean,
+    onMonochromePlayerChange: (Boolean) -> Unit,
     hideNavLabels: Boolean,
     onHideNavLabelsChange: (Boolean) -> Unit,
     dynamicNavStyle: Boolean,
@@ -1692,6 +1708,11 @@ private fun AppearanceScreen(
                 }
                 add { DynamicAlbumThemeRow(dynamicAlbumTheme, onDynamicAlbumThemeChange) }
             })
+
+            SettingsHeader("Player")
+            SettingsGroupCard(listOf(
+                { MonochromePlayerRow(monochromePlayer, onMonochromePlayerChange) }
+            ))
 
             SettingsHeader("Navigation Bar")
             SettingsGroupCard(buildList {
@@ -1768,6 +1789,41 @@ private fun DynamicAlbumThemeRow(checked: Boolean, onToggle: (Boolean) -> Unit) 
                 )
                 Text(
                     text = "Extract theme colors from the currently playing album art",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        leadingContent = {
+            Icon(
+                imageVector = Icons.Rounded.Palette,
+                contentDescription = null,
+                tint = if (checked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(24.dp)
+            )
+        },
+        trailingContent = {
+            Switch(
+                checked = checked,
+                onCheckedChange = onToggle
+            )
+        },
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+    )
+}
+
+@Composable
+private fun MonochromePlayerRow(checked: Boolean, onToggle: (Boolean) -> Unit) {
+    ListItem(
+        onClick = { onToggle(!checked) },
+        content = {
+            Column {
+                Text(
+                    text = "Monochrome Player",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Text(
+                    text = "Use a black-and-white player, including artwork, controls, queue, and lyrics",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

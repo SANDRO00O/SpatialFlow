@@ -2,6 +2,7 @@ package com.codetrio.spatialflow.ui.player
 
 import android.content.Context
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
@@ -19,6 +20,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -38,8 +42,18 @@ fun ArtworkPager(
     currentSongIndex: Int,
     context: Context,
     modifier: Modifier = Modifier,
-    userScrollEnabled: Boolean = true
+    userScrollEnabled: Boolean = true,
+    monochromePlayer: Boolean = false
 ) {
+    val isDark = isSystemInDarkTheme()
+    val artworkColorFilter = remember(monochromePlayer) {
+        if (monochromePlayer) {
+            ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) })
+        } else {
+            null
+        }
+    }
+
     val pagerState = rememberPagerState(
         initialPage = currentSongIndex.coerceAtLeast(0)
     ) {
@@ -102,6 +116,7 @@ fun ArtworkPager(
                             }
                         },
                         modifier = Modifier.fillMaxSize(),
+                        colorFilter = artworkColorFilter,
                         contentScale = ContentScale.Crop
                     )
                 } else {
@@ -110,10 +125,18 @@ fun ArtworkPager(
                             .fillMaxSize()
                             .background(
                                 Brush.verticalGradient(
-                                    colors = listOf(
-                                        MaterialTheme.colorScheme.surfaceVariant,
-                                        MaterialTheme.colorScheme.surfaceContainerHighest
-                                    )
+                                    colors = if (monochromePlayer) {
+                                        if (isDark) {
+                                            listOf(Color(0xFF101010), Color(0xFF242424))
+                                        } else {
+                                            listOf(Color.White, Color(0xFFE6E6E6))
+                                        }
+                                    } else {
+                                        listOf(
+                                            MaterialTheme.colorScheme.surfaceVariant,
+                                            MaterialTheme.colorScheme.surfaceContainerHighest
+                                        )
+                                    }
                                 )
                             ),
                         contentAlignment = Alignment.Center
@@ -121,7 +144,11 @@ fun ArtworkPager(
                         Icon(
                             painter = painterResource(id = R.drawable.ic_music_note),
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            tint = if (monochromePlayer) {
+                                (if (isDark) Color.White else Color.Black).copy(alpha = 0.6f)
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            },
                             modifier = Modifier.size(96.dp)
                         )
                     }
